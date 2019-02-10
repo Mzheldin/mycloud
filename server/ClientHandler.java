@@ -1,164 +1,198 @@
 package geekbrains.java.cloud.server;
 
-import geekbrains.java.cloud.common.CommandType;
-import geekbrains.java.cloud.common.DataType;
+import geekbrains.java.cloud.common.DataBase;
+import geekbrains.java.cloud.common.StageType;
+import geekbrains.java.cloud.common.UnitedType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.nio.file.*;
 
 public class ClientHandler extends ChannelInboundHandlerAdapter {
 
-    private int stage = -1;
-    private int reqLength = -1;
-    private DataType type = DataType.EMPTY;
-    private CommandType commandType;
-    private ChannelHandlerContext ctx;
-    private Path pathToLoad;
+    private DataBase dataBase;
+    private ServerFileMethods serverFileMethods = new ServerFileMethods();
+    private Path path;
+    private String clientFolder;
     private long fileReqLength = 0;
     private long loadedLength = 0;
+    private UnitedType uType = UnitedType.EMPTY;
+    private StageType sType = StageType.START_TYPE;
+    private String fileName;
+    private String userInfo;
+    private int reqNameLength = 0;
+    private BufferedOutputStream bos;
 
+    public ClientHandler(DataBase dataBase){
+        this.dataBase = dataBase;
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 
-        this.ctx = ctx;
-
+        serverFileMethods.setCtx(ctx);
         ByteBuf byteBuf = (ByteBuf) msg;
-        //получаем 1й байт, определяем тип сообщения и следующие 4 байта под длину команды или имени файла
-        if (stage == -1){
-            byte firstByte = byteBuf.readByte();
-            type = DataType.getDataTypeFromByte(firstByte);
-            reqLength = 4;
-            System.out.println("type: " + type);
-            stage = 0;
-        }
-        //принимаем и считываем длину команды или имени файла(4 байта)
-        if (stage == 0){
-            if (byteBuf.readableBytes() < reqLength) return;
-            reqLength = byteBuf.readInt();
-            System.out.println("text size: " + reqLength);
-            stage = 1;
-        }
-        //принимаем и считываем команду или имя файла
-        if (stage == 1) {
-            if (byteBuf.readableBytes() < reqLength) return;
-            byte[] data = new byte[reqLength];
-            byteBuf.readBytes(data);
-            // если тип сообщения - команда, то обрабатываем ее и сбрасываем "прогресс" приема данных
-            if (type == DataType.COMMAND){
-                byteBuf.release();
-                doCommand(new String(data));
-                reset();
-            }
-            // если тип - файл, то создаем путь для него в хранилище сервера и задаем длину размера файла - 8 байт
-            if (type == DataType.FILE){
-                pathToLoad = Paths.get("server_storage/" + new String(data));
-                reqLength = 8;
-                stage = 2;
+
+        if (sType == StageType.START_TYPE){
+            uType = UnitedType.getTypeFromByte(byteBuf.readByte());
+            switch (uType){
+                case AUTH:
+                case REG: sType = StageType.GET_USER_LENGTH;
+                break;
             }
         }
-        //считываем размер файла и запоминаем его
-        if (stage == 2){
-            if (byteBuf.readableBytes() < reqLength) return;
+
+        if (sType == StageType.GET_USER_LENGTH){
+            if (byteBuf.readableBytes() < 4) return;
+            reqNameLength = byteBuf.readInt();
+            sType = StageType.GET_USER;
+            System.out.println("Stage GET_USER_LENGTH " + reqNameLength);
+        }
+
+        if (sType == StageType.GET_USER){
+            if (byteBuf.readableBytes() < reqNameLength) return;
+            byte[] authNameArr = new byte[reqNameLength];
+            byteBuf.readBytes(authNameArr);
+            userInfo = new String(authNameArr);
+            switch (uType){
+                case REG: sType = StageType.GET_REG;
+                break;
+                case AUTH: sType = StageType.GET_AUTH;
+                break;
+            }
+            System.out.println("STAGE GET_USER " + sType);
+        }
+
+        if (sType == StageType.GET_AUTH){
+            if (dataBase.getAuth(userInfo)) {
+                clientFolder = dataBase.getFolder(userInfo);
+                serverFileMethods.setServerPath(clientFolder);
+                serverFileMethods.sendAuthOk();
+                sType = StageType.SEND_LIST;
+                System.out.println("Stage GET_AUTH OK");
+            }
+            else {
+                sType = StageType.START_TYPE;
+                System.out.println("Stage GET_AUTH FAIL");
+            }
+        }
+
+        if (sType == StageType.GET_REG){
+            if (dataBase.getReg(userInfo)){
+                Files.createDirectory(Paths.get(dataBase.getFolder(userInfo)));
+                sType = StageType.GET_AUTH;
+                System.out.println("Stage GET_REG OK");
+            } else {
+                sType = StageType.START_TYPE;
+                System.out.println("Stage GET_REG FAIL");
+            }
+        }
+
+        if (sType == StageType.GET_COMMAND){
+            uType = UnitedType.getTypeFromByte(byteBuf.readByte());
+            switch (uType){
+                case DOWNLOAD:
+                case UPLOAD:
+                case CREATE:
+                case FORWARD:
+                case DELETE: sType = StageType.GET_FILE_NAME_LENGTH;
+                break;
+                case BACK: sType = StageType.MOVE_BACK;
+                break;
+                case LIST: sType = StageType.SEND_LIST;
+                break;
+//                case RELOG: sType = StageType.START_TYPE;
+//                break;
+            }
+            System.out.println("Stage GET_COMMAND Command " + sType);
+        }
+
+        if (sType == StageType.GET_FILE_NAME_LENGTH){
+            if (byteBuf.readableBytes() < 4) return;
+            reqNameLength = byteBuf.readInt();
+            sType = StageType.GET_FILE_NAME;
+            System.out.println("Stage GET_FILE_NAME_LENGTH Length " + reqNameLength);
+        }
+
+        if (sType == StageType.GET_FILE_NAME){
+            if (byteBuf.readableBytes() < reqNameLength) return;
+            byte[] fileNameArr = new byte[reqNameLength];
+            byteBuf.readBytes(fileNameArr);
+            fileName = new String(fileNameArr);
+            path = Paths.get(serverFileMethods.getServerPath() + fileName);
+            switch (uType){
+                case DOWNLOAD: sType = StageType.SEND_FILE;
+                break;
+                case UPLOAD: sType = StageType.GET_FILE_LENGTH;
+                break;
+                case DELETE: sType = StageType.DELETE_FILE;
+                break;
+                case CREATE: sType = StageType.CREATE_DIR;
+                break;
+                case FORWARD: sType = StageType.MOVE_FORWARD;
+                break;
+                default: sType = StageType.GET_COMMAND;
+                break;
+            }
+            System.out.println("Stage GET_FILE_NAME Name " + fileName);
+        }
+
+        if (sType == StageType.CREATE_DIR){
+            serverFileMethods.createDir(path);
+            sType = StageType.SEND_LIST;
+        }
+
+        if (sType == StageType.MOVE_FORWARD){
+            serverFileMethods.moveForward(fileName);
+            sType = StageType.SEND_LIST;
+        }
+
+        if (sType == StageType.DELETE_FILE){
+            serverFileMethods.deleteFile(path);
+            sType = StageType.SEND_LIST;
+        }
+
+        if (sType == StageType.SEND_FILE){
+            serverFileMethods.writeFile(fileName, path);
+            byteBuf.release();
+            sType = StageType.GET_COMMAND;
+            System.out.println("Stage SEND_FILE Send");
+        }
+
+        if (sType == StageType.MOVE_BACK){
+            serverFileMethods.moveBack();
+            sType = StageType.GET_COMMAND;
+        }
+
+        if (sType == StageType.SEND_LIST){
+            serverFileMethods.sendFilesList();
+            sType = StageType.GET_COMMAND;
+        }
+
+        if (sType == StageType.GET_FILE_LENGTH){
+            if (byteBuf.readableBytes() < 8) return;
             fileReqLength = byteBuf.readLong();
-            stage = 3;
+            loadedLength = 0;
+            serverFileMethods.createFile(path);
+            bos = new BufferedOutputStream(new FileOutputStream(path.toString(), true));
+            sType = StageType.GET_FILE;
+            System.out.println("Stage GET_FILE_LENGTH Length " + fileReqLength);
         }
-        //пока счетчик байт меньше размера файла, то по 1 байту принимаем и записываем в файл
-        if (stage == 3){
-            if (loadedLength < fileReqLength){
-                byte[] data = new byte[1];
-                data[0] = byteBuf.readByte();
-                downloadFile(data, pathToLoad);
+
+        if (sType == StageType.GET_FILE){
+            while (byteBuf.readableBytes() > 0 && loadedLength < fileReqLength){
+                bos.write(byteBuf.readByte());
                 loadedLength++;
-                return;
             }
-            reset(); //сбрасываем прием данных
+            if (loadedLength < fileReqLength) return;
+            bos.flush();
+            byteBuf.release();
+            bos.close();
+            sType = StageType.SEND_LIST;
+            System.out.println("Stage GET_FILE Get");
         }
-    }
-    //определяем команду, если загружают на сервер - создаем пустой файл с принятым именем
-    private void doCommand(String command){
-        String[] line = command.split(" ");
-        commandType = CommandType.getCommandType(line[0]);
-        switch (commandType){
-            case UPLOAD:{
-                createFile(line[1]);
-            } break;
-    //если загружают с сервера, то передаем файл с соотв. именем
-            case DOWNLOAD:{
-                writeFile(line[1]);
-            } break;
-        }
-    }
-    //передача файла
-    private void writeFile(String fileName){
-        try {
-            Path path = Paths.get("server_storage/" + fileName) ;
-            if (Files.exists(path)){
-                //формируем и передаем тип(файл), длину имени, имя и размер файла
-                byte[] dataType = new byte[1];
-                dataType[0] = 15;
-                byte[] fileNameArr = (fileName).getBytes();
-                ByteBuffer buff = ByteBuffer.allocate(4);
-                buff.putInt(fileNameArr.length);
-                ByteBuffer fileSize = ByteBuffer.allocate(8);
-                fileSize.putLong(Files.size(path));
-
-                ctx.writeAndFlush(dataType);
-                ctx.writeAndFlush(buff.array());
-                ctx.writeAndFlush(fileNameArr);
-                ctx.writeAndFlush(fileSize.array());
-                //считываем и передаем файл по 4 байта
-                InputStream inputStream = Files.newInputStream(path);
-                while (inputStream.available() > 0){
-                    byte[] data = new byte[4];
-                    inputStream.read(data);
-                    ctx.writeAndFlush(data);
-                }
-            }
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    private void getFile(){
-
-    }
-    //создаем пустой файл для последующего принятия в него данных
-    private void createFile(String fileName){
-        try{
-            Path path = Paths.get("server_storage/" + fileName);
-            if (Files.notExists(path)) Files.createFile(path);
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-    //записываем в созданный ранее пустой файл байты, добавляя их в конец
-    private void downloadFile(byte[] data, Path pathToLoad){
-        try {
-            Files.write(pathToLoad, data, StandardOpenOption.APPEND);
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-    //сброс параметров "прогресса" приема данных
-    private void reset(){
-        stage = -1;
-        reqLength = -1;
-        type = DataType.EMPTY;
-        commandType = null;
-        ctx = null;
-        pathToLoad = null;
-        fileReqLength = 0;
-        loadedLength = 0;
-
     }
 
     @Override

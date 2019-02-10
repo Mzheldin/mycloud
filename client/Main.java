@@ -15,10 +15,6 @@ public class Main extends Application {
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
         primaryStage.show();
-//        Parent root = FXMLLoader.load(getClass().getResource("/main.fxml"));
-//        primaryStage.setTitle("Cloud client");
-//        primaryStage.setScene(new Scene(root, 400, 400));
-//        primaryStage.show();
     }
 
     public static void main(String[] args) {
