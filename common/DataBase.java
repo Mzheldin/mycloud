@@ -37,7 +37,6 @@ public class DataBase {
             String sqlQuery = "SELECT folder FROM users WHERE login = '"
                     + logPassArr[0] + "'";
             ResultSet resultSet = statement.executeQuery(sqlQuery);
-            System.out.println(resultSet.getString(1));
             return resultSet.getString(1);
         } catch (SQLException e){
             e.printStackTrace();
@@ -53,7 +52,6 @@ public class DataBase {
                     + logPassArr[0] + "' AND pass = '" + logPassArr[1] + "'";
             ResultSet resultSet = statement.executeQuery(sqlQuery);
             if (resultSet.next()) result = true;
-            System.out.println(resultSet);
         } catch (SQLException e){
             e.printStackTrace();
         }

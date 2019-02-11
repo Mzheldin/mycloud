@@ -46,14 +46,12 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
                 case AUTH: Platform.runLater(() -> controller.closeAuth());
                 break;
             }
-            System.out.println("Stage GET_COMMAND Command " + sType);
         }
 
         if (sType == StageType.GET_FILE_NAME_LENGTH){
             if (byteBuf.readableBytes() < 4) return;
             fileNameLength = byteBuf.readInt();
             sType = StageType.GET_FILE_NAME;
-            System.out.println("Stage GET_FILE_NAME_LENGTH Length " + fileNameLength);
         }
 
         if (sType == StageType.GET_LIST_LENGTH){
@@ -61,7 +59,6 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
             listLength = byteBuf.readInt();
             loadedLength = 0;
             sType = StageType.GET_LIST;
-            System.out.println("Stage GET_LIST_LENGTH " + listLength);
         }
 
         if (sType == StageType.GET_LIST){
@@ -70,7 +67,6 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
             byteBuf.readBytes(listArr);
             controller.refreshServerFilesList(new String(listArr).split(" "));
             sType = StageType.GET_COMMAND;
-            System.out.println("Stage GET_LIST ");
         }
 
         if (sType == StageType.GET_FILE_NAME){
@@ -80,7 +76,6 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
             fileName = new String(fileNameArr);
             path = Paths.get("client_storage/" + fileName);
             sType = StageType.GET_FILE_LENGTH;
-            System.out.println("Stage GET_FILE_NAME Name " + fileName);
         }
 
         if (sType == StageType.GET_FILE_LENGTH){
@@ -90,7 +85,6 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
             clientFileMethods.createFile(path);
             bos = new BufferedOutputStream(new FileOutputStream(path.toString(), true));
             sType = StageType.GET_FILE;
-            System.out.println("Stage GET_FILE_LENGTH Length " + fileReqLength);
         }
 
         if (sType == StageType.GET_FILE){
@@ -104,7 +98,6 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
             bos.close();
             controller.refreshLocalFilesList();
             sType = StageType.SEND_LIST;
-            System.out.println("Stage GET_FILE Get");
         }
     }
 

@@ -48,7 +48,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             if (byteBuf.readableBytes() < 4) return;
             reqNameLength = byteBuf.readInt();
             sType = StageType.GET_USER;
-            System.out.println("Stage GET_USER_LENGTH " + reqNameLength);
         }
 
         if (sType == StageType.GET_USER){
@@ -62,7 +61,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 case AUTH: sType = StageType.GET_AUTH;
                 break;
             }
-            System.out.println("STAGE GET_USER " + sType);
         }
 
         if (sType == StageType.GET_AUTH){
@@ -71,11 +69,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 serverFileMethods.setServerPath(clientFolder);
                 serverFileMethods.sendAuthOk();
                 sType = StageType.SEND_LIST;
-                System.out.println("Stage GET_AUTH OK");
             }
             else {
                 sType = StageType.START_TYPE;
-                System.out.println("Stage GET_AUTH FAIL");
             }
         }
 
@@ -83,10 +79,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             if (dataBase.getReg(userInfo)){
                 Files.createDirectory(Paths.get(dataBase.getFolder(userInfo)));
                 sType = StageType.GET_AUTH;
-                System.out.println("Stage GET_REG OK");
             } else {
                 sType = StageType.START_TYPE;
-                System.out.println("Stage GET_REG FAIL");
             }
         }
 
@@ -106,14 +100,12 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 //                case RELOG: sType = StageType.START_TYPE;
 //                break;
             }
-            System.out.println("Stage GET_COMMAND Command " + sType);
         }
 
         if (sType == StageType.GET_FILE_NAME_LENGTH){
             if (byteBuf.readableBytes() < 4) return;
             reqNameLength = byteBuf.readInt();
             sType = StageType.GET_FILE_NAME;
-            System.out.println("Stage GET_FILE_NAME_LENGTH Length " + reqNameLength);
         }
 
         if (sType == StageType.GET_FILE_NAME){
@@ -136,7 +128,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 default: sType = StageType.GET_COMMAND;
                 break;
             }
-            System.out.println("Stage GET_FILE_NAME Name " + fileName);
         }
 
         if (sType == StageType.CREATE_DIR){
@@ -158,7 +149,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             serverFileMethods.writeFile(fileName, path);
             byteBuf.release();
             sType = StageType.GET_COMMAND;
-            System.out.println("Stage SEND_FILE Send");
         }
 
         if (sType == StageType.MOVE_BACK){
@@ -178,7 +168,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             serverFileMethods.createFile(path);
             bos = new BufferedOutputStream(new FileOutputStream(path.toString(), true));
             sType = StageType.GET_FILE;
-            System.out.println("Stage GET_FILE_LENGTH Length " + fileReqLength);
         }
 
         if (sType == StageType.GET_FILE){
@@ -191,7 +180,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             byteBuf.release();
             bos.close();
             sType = StageType.SEND_LIST;
-            System.out.println("Stage GET_FILE Get");
         }
     }
 

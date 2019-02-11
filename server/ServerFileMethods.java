@@ -71,7 +71,6 @@ public class ServerFileMethods {
         Path path = Paths.get(serverPath);
         ArrayList<String> filesList = new ArrayList<>();
         StringBuilder result = new StringBuilder();
-        System.out.println("path " + serverPath);
         try {
             Files.walkFileTree(path, new SimpleFileVisitor<Path>(){
                 @Override
@@ -94,7 +93,6 @@ public class ServerFileMethods {
         }
         for (String o: filesList) result.append(o).append(" ");
         sendData("LIST " + result);
-        System.out.println(result.toString());
     }
 
     private void sendData(Object data){
@@ -130,7 +128,6 @@ public class ServerFileMethods {
         if (!Files.exists(path)){
             try {
                 Files.createDirectory(path);
-                System.out.println("new dir " + path.toString());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -140,7 +137,6 @@ public class ServerFileMethods {
     public void moveForward(String fileName) {
         if (Files.isDirectory(Paths.get(serverPath + fileName))) {
             serverPath += fileName;
-            System.out.println("path after forward " + serverPath);
         }
     }
 
@@ -150,7 +146,6 @@ public class ServerFileMethods {
             StringBuilder previousPath = new StringBuilder();
             for (int i = 0; i <= currentPathArr.length - 2; i++) previousPath.append(currentPathArr[i]).append("/");
             serverPath = previousPath.toString();
-            System.out.println("path after back " + serverPath);
             sendFilesList();
         }
     }
