@@ -45,8 +45,6 @@ public class ClientFileMethods {
                     inputStream.read(dataEnd);
                     sendData(dataEnd);
                 }
-                byte[] end = {20};
-                sendData(end);
                 inputStream.close();
             }
         } catch (IOException e){
@@ -100,6 +98,8 @@ public class ClientFileMethods {
 //                    case "RELOG": buf.writeByte(UnitedType.getByteFromType(UnitedType.RELOG));
 //                        break;
                     case "BACK": buf.writeByte(UnitedType.getByteFromType(UnitedType.BACK));
+                        break;
+                    case "EXIT": buf.writeByte(UnitedType.getByteFromType(UnitedType.EXIT));
                         break;
                 }
             } catch (IOException e) {

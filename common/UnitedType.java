@@ -12,7 +12,9 @@ public enum UnitedType {
     REG((byte)22),
     CREATE((byte)23),
     FORWARD((byte)24),
-    BACK((byte)25);
+    BACK((byte)25),
+    EXIT((byte)26),
+    WARNING((byte)27);
     //RELOG((byte)26);
 
     byte firstByteMessage;
@@ -33,6 +35,8 @@ public enum UnitedType {
         if (b == CREATE.firstByteMessage) return CREATE;
         if (b == FORWARD.firstByteMessage) return FORWARD;
         if (b == BACK.firstByteMessage) return BACK;
+        if (b == EXIT.firstByteMessage) return EXIT;
+        if (b == WARNING.firstByteMessage) return WARNING;
         //if (b == RELOG.firstByteMessage) return RELOG;
         else return EMPTY;
     }
@@ -50,6 +54,8 @@ public enum UnitedType {
             case CREATE: return 23;
             case FORWARD: return 24;
             case BACK: return 25;
+            case EXIT: return 26;
+            case WARNING: return 27;
             //case RELOG: return 26;
             default: return -1;
         }

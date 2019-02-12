@@ -39,11 +39,12 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
         if (sType == StageType.GET_COMMAND){
             uType = UnitedType.getTypeFromByte(byteBuf.readByte());
             switch (uType){
+                case WARNING:
+                case LIST:
                 case FILE: sType = StageType.GET_FILE_NAME_LENGTH;
                 break;
-                case LIST: sType = StageType.GET_LIST_LENGTH;
-                break;
                 case AUTH: Platform.runLater(() -> controller.closeAuth());
+
                 break;
             }
         }
@@ -54,28 +55,28 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
             sType = StageType.GET_FILE_NAME;
         }
 
-        if (sType == StageType.GET_LIST_LENGTH){
-            if (byteBuf.readableBytes() < 4) return;
-            listLength = byteBuf.readInt();
-            loadedLength = 0;
-            sType = StageType.GET_LIST;
-        }
-
-        if (sType == StageType.GET_LIST){
-            if (byteBuf.readableBytes() < listLength) return;
-            byte[] listArr = new byte[listLength];
-            byteBuf.readBytes(listArr);
-            controller.refreshServerFilesList(new String(listArr).split(" "));
-            sType = StageType.GET_COMMAND;
-        }
-
         if (sType == StageType.GET_FILE_NAME){
             if (byteBuf.readableBytes() < fileNameLength) return;
             byte[] fileNameArr = new byte[fileNameLength];
             byteBuf.readBytes(fileNameArr);
             fileName = new String(fileNameArr);
-            path = Paths.get("client_storage/" + fileName);
-            sType = StageType.GET_FILE_LENGTH;
+            switch (uType){
+                case LIST:{
+                    controller.refreshServerFilesList(fileName.split(" "));
+                    sType = StageType.GET_COMMAND;
+                }
+                break;
+                case FILE:{
+                    path = Paths.get("client_storage/" + fileName);
+                    sType = StageType.GET_FILE_LENGTH;
+                }
+                break;
+                case WARNING: {
+                    Platform.runLater(() -> controller.showWarning(fileName));
+                    sType = StageType.GET_COMMAND;
+                }
+                break;
+            }
         }
 
         if (sType == StageType.GET_FILE_LENGTH){

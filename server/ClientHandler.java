@@ -71,6 +71,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 sType = StageType.SEND_LIST;
             }
             else {
+                serverFileMethods.sendWarning("Неверные данные для входа");
                 sType = StageType.START_TYPE;
             }
         }
@@ -80,6 +81,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 Files.createDirectory(Paths.get(dataBase.getFolder(userInfo)));
                 sType = StageType.GET_AUTH;
             } else {
+                serverFileMethods.sendWarning("Регистрация не выполнена");
                 sType = StageType.START_TYPE;
             }
         }
@@ -96,6 +98,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 case BACK: sType = StageType.MOVE_BACK;
                 break;
                 case LIST: sType = StageType.SEND_LIST;
+                break;
+                case EXIT: sType = StageType.EXIT;
                 break;
 //                case RELOG: sType = StageType.START_TYPE;
 //                break;
@@ -128,6 +132,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 default: sType = StageType.GET_COMMAND;
                 break;
             }
+        }
+
+        if (sType == StageType.EXIT){
+            dataBase.removeUser(userInfo);
+            sType = StageType.START_TYPE;
         }
 
         if (sType == StageType.CREATE_DIR){
@@ -185,6 +194,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        dataBase.removeUser(userInfo);
         cause.printStackTrace();
         ctx.close();
     }

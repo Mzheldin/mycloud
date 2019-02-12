@@ -18,5 +18,6 @@ public enum StageType {
     GET_REG,
     CREATE_DIR,
     MOVE_FORWARD,
-    MOVE_BACK
+    MOVE_BACK,
+    EXIT
 }

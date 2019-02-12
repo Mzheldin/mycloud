@@ -2,12 +2,15 @@ package geekbrains.java.cloud.common;
 
 import org.sqlite.JDBC;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DataBase {
 
     private Connection connection;
     private Statement statement;
     private final String folder = "_folder/";
+    private List<String> activeUsers = new ArrayList<>();
 
     public void connect(){
         try {
@@ -51,7 +54,10 @@ public class DataBase {
             String sqlQuery = "SELECT * FROM users WHERE login = '"
                     + logPassArr[0] + "' AND pass = '" + logPassArr[1] + "'";
             ResultSet resultSet = statement.executeQuery(sqlQuery);
-            if (resultSet.next()) result = true;
+            if (resultSet.next() && !activeUsers.contains(logPassArr[0])) {
+                result = true;
+                activeUsers.add(logPassArr[0]);
+            }
         } catch (SQLException e){
             e.printStackTrace();
         }
@@ -71,5 +77,12 @@ public class DataBase {
             e.printStackTrace();
         }
         return result == 1;
+    }
+
+    public void removeUser(String logPass){
+        String[] logPassArr = logPass.split(" ");
+        if (activeUsers.contains(logPassArr[0])) {
+            activeUsers.remove(logPassArr[0]);
+        }
     }
 }

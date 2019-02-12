@@ -49,8 +49,6 @@ public class ServerFileMethods {
                     inputStream.read(dataEnd);
                     sendData(dataEnd);
                 }
-                byte[] end = {20};
-                sendData(end);
                 inputStream.close();
             }
         } catch (IOException e){
@@ -93,6 +91,7 @@ public class ServerFileMethods {
         }
         for (String o: filesList) result.append(o).append(" ");
         sendData("LIST " + result);
+        System.out.println("list send " + result.toString());
     }
 
     private void sendData(Object data){
@@ -109,6 +108,11 @@ public class ServerFileMethods {
                     } break;
                     case "LIST":{
                         buf.writeByte(UnitedType.getByteFromType(UnitedType.LIST));
+                        buf.writeInt(((String) data).split(" ", 2)[1].getBytes().length);
+                        buf.writeBytes(((String) data).split(" ", 2)[1].getBytes());
+                    } break;
+                    case "WARNING":{
+                        buf.writeByte(UnitedType.getByteFromType(UnitedType.WARNING));
                         buf.writeInt(((String) data).split(" ", 2)[1].getBytes().length);
                         buf.writeBytes(((String) data).split(" ", 2)[1].getBytes());
                     } break;
@@ -176,5 +180,9 @@ public class ServerFileMethods {
 
     public void sendAuthOk(){
         sendData("AUTH");
+    }
+
+    public void sendWarning(String warning){
+        sendData("WARNING " + warning);
     }
 }

@@ -7,7 +7,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.ListView;
+import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -160,6 +161,20 @@ public class Controller implements Initializable {
 
     public void pressOnBckBtn(ActionEvent actionEvent) {
         clientFileMethods.sendData("BACK");
+    }
+
+    public void menuExit(ActionEvent actionEvent) {
+        clientFileMethods.sendData("EXIT");
+
+        System.exit(0);
+    }
+
+    public void showWarning(String warning) {
+        Alert alert = new Alert(Alert.AlertType.WARNING, warning);
+        alert.showAndWait();
+//        Optional<ButtonType> result = alert.showAndWait();
+//        if (result.get().getText().equals("OK")) System.out.println("You clicked OK");
+
     }
 
 //    public void pressOnAuthBtn(ActionEvent actionEvent) {
