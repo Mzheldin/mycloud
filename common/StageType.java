@@ -7,8 +7,6 @@ public enum StageType {
     GET_FILE_NAME_LENGTH,
     GET_FILE_LENGTH,
     GET_FILE,
-    GET_LIST_LENGTH,
-    GET_LIST,
     SEND_LIST,
     DELETE_FILE,
     START_TYPE,

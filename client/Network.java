@@ -32,7 +32,6 @@ public class Network {
                     currentChannel = socketChannel;
                 }
             });
-
             ChannelFuture channelFuture = clientBootstrap.connect().sync();
             channelFuture.channel().closeFuture().sync();
         } catch (Exception e){

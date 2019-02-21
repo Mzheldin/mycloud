@@ -1,5 +1,6 @@
 package geekbrains.java.cloud.client;
 
+import geekbrains.java.cloud.common.UnitedType;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
@@ -17,7 +18,7 @@ public class AddFolderController {
 
     public void create(ActionEvent actionEvent) {
         if (!folder.getText().trim().equals("")){
-            backController.getClientFileMethods().sendData("CREATE " + folder.getText() +"/");
+            backController.getClientFileMethods().sendCommand(UnitedType.CREATE, folder.getText() +"/");
             backController.refreshLocalFilesList();
         }
         globParent.getScene().getWindow().hide();

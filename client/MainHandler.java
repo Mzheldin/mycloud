@@ -22,7 +22,6 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
     private StageType sType = StageType.GET_COMMAND;
     private String fileName;
     private int fileNameLength = 0;
-    private int listLength = 0;
     private BufferedOutputStream bos;
     private Controller controller;
 
@@ -44,7 +43,6 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
                 case FILE: sType = StageType.GET_FILE_NAME_LENGTH;
                 break;
                 case AUTH: Platform.runLater(() -> controller.closeAuth());
-
                 break;
             }
         }
@@ -98,7 +96,7 @@ public class MainHandler extends ChannelInboundHandlerAdapter {
             byteBuf.release();
             bos.close();
             controller.refreshLocalFilesList();
-            sType = StageType.SEND_LIST;
+            sType = StageType.GET_COMMAND;
         }
     }
 

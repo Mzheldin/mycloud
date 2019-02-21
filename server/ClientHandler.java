@@ -101,8 +101,6 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 break;
                 case EXIT: sType = StageType.EXIT;
                 break;
-//                case RELOG: sType = StageType.START_TYPE;
-//                break;
             }
         }
 
@@ -157,7 +155,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         if (sType == StageType.SEND_FILE){
             serverFileMethods.writeFile(fileName, path);
             byteBuf.release();
-            sType = StageType.GET_COMMAND;
+            sType = StageType.SEND_LIST;
         }
 
         if (sType == StageType.MOVE_BACK){

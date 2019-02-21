@@ -1,5 +1,6 @@
 package geekbrains.java.cloud.client;
 
+import geekbrains.java.cloud.common.UnitedType;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -15,7 +16,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
@@ -51,28 +51,28 @@ public class Controller implements Initializable {
     public void pressOnDownloadBtn(ActionEvent actionEvent) {
         String serverFileName = serverFilesList.getSelectionModel().getSelectedItem();
         if (serverFileName != null && !serverFileName.equals("") ){
-            clientFileMethods.sendData("DOWNLOAD " + serverFileName);
+            clientFileMethods.sendCommand(UnitedType.DOWNLOAD, serverFileName);
         }
     }
 
     public void pressOnUploadBtn(ActionEvent actionEvent){
         String clientFileName = filesList.getSelectionModel().getSelectedItem();
         if (clientFileName != null && !clientFileName.equals("")){
-            clientFileMethods.sendData("UPLOAD " + clientFileName);
+            clientFileMethods.sendCommand(UnitedType.UPLOAD, clientFileName);
             clientFileMethods.writeFile(clientFileName);
             refreshLocalFilesList();
-            clientFileMethods.sendData("LIST");
+            clientFileMethods.sendShortCommand(UnitedType.LIST);
         }
     }
 
     public void pressOnRfrshBtn(ActionEvent actionEvent) {
         refreshLocalFilesList();
-        clientFileMethods.sendData("LIST");
+        clientFileMethods.sendShortCommand(UnitedType.LIST);
     }
 
     public void pressOnDltBtn(ActionEvent actionEvent) {
         String serverFileName = serverFilesList.getSelectionModel().getSelectedItem();
-        if (serverFileName != null && !serverFileName.equals("")) clientFileMethods.sendData("DELETE " + serverFileName);
+        if (serverFileName != null && !serverFileName.equals("")) clientFileMethods.sendCommand(UnitedType.DELETE, serverFileName);
 
         String clientFileName = filesList.getSelectionModel().getSelectedItem();
         if (clientFileName != null && !clientFileName.equals("")){
@@ -156,29 +156,20 @@ public class Controller implements Initializable {
 
     public void pressOnFrwrdBtn(ActionEvent actionEvent) {
         String serverFileName = serverFilesList.getSelectionModel().getSelectedItem();
-        if (serverFileName != null && !serverFileName.equals("")) clientFileMethods.sendData("FORWARD " + serverFileName + "/");
+        if (serverFileName != null && !serverFileName.equals("")) clientFileMethods.sendCommand(UnitedType.FORWARD, serverFileName + "/");
     }
 
     public void pressOnBckBtn(ActionEvent actionEvent) {
-        clientFileMethods.sendData("BACK");
+        clientFileMethods.sendShortCommand(UnitedType.BACK);
     }
 
     public void menuExit(ActionEvent actionEvent) {
-        clientFileMethods.sendData("EXIT");
-
+        clientFileMethods.sendShortCommand(UnitedType.EXIT);
         System.exit(0);
     }
 
     public void showWarning(String warning) {
         Alert alert = new Alert(Alert.AlertType.WARNING, warning);
         alert.showAndWait();
-//        Optional<ButtonType> result = alert.showAndWait();
-//        if (result.get().getText().equals("OK")) System.out.println("You clicked OK");
-
     }
-
-//    public void pressOnAuthBtn(ActionEvent actionEvent) {
-//        clientFileMethods.sendData("RELOG");
-//        showAuth();
-//    }
 }

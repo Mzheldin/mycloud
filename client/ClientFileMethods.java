@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 
 import static io.netty.buffer.Unpooled.buffer;
 
@@ -38,7 +37,6 @@ public class ClientFileMethods {
                 while (inputStream.available() >= 1024){
                     inputStream.read(data);
                     sendData(data);
-                    Arrays.fill(data, (byte) 0);
                 }
                 byte[] dataEnd = new byte[inputStream.available()];
                 while (inputStream.available() > 0){
@@ -52,62 +50,28 @@ public class ClientFileMethods {
         }
     }
 
-    public void sendData(Object data){
+    public void sendData(byte[] data){
         ByteBuf buf = buffer(1024);
-        if (data instanceof String){
-            try{
-                switch (((String) data).split(" ", 2)[0]){
-                    case "AUTH":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.AUTH));
-                        buf.writeInt(((String) data).split(" ", 2)[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ", 2)[1].getBytes());
-                    } break;
-                    case "REG":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.REG));
-                        buf.writeInt(((String) data).split(" ", 2)[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ", 2)[1].getBytes());
-                    } break;
-                    case "UPLOAD":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.UPLOAD));
-                        buf.writeInt(((String) data).split(" ")[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ")[1].getBytes());
-                        buf.writeLong(Files.size(Paths.get("client_storage/" + ((String) data).split(" ")[1])));
-                    } break;
-                    case "DOWNLOAD":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.DOWNLOAD));
-                        buf.writeInt(((String) data).split(" ")[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ")[1].getBytes());
-                    } break;
-                    case "DELETE":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.DELETE));
-                        buf.writeInt(((String) data).split(" ")[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ")[1].getBytes());
-                    }break;
-                    case "CREATE":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.CREATE));
-                        buf.writeInt(((String) data).split(" ")[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ")[1].getBytes());
-                    } break;
-                    case "LIST": buf.writeByte(UnitedType.getByteFromType(UnitedType.LIST));
-                        break;
-                    case "FORWARD":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.FORWARD));
-                        buf.writeInt(((String) data).split(" ")[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ")[1].getBytes());
-                    } break;
-//                    case "RELOG": buf.writeByte(UnitedType.getByteFromType(UnitedType.RELOG));
-//                        break;
-                    case "BACK": buf.writeByte(UnitedType.getByteFromType(UnitedType.BACK));
-                        break;
-                    case "EXIT": buf.writeByte(UnitedType.getByteFromType(UnitedType.EXIT));
-                        break;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            buf.writeBytes((byte[]) data);
+        buf.writeBytes(data);
+        network.getCurrentChannel().writeAndFlush(buf);
+    }
+
+    public void sendCommand(UnitedType commandType, String commandInfo){
+        ByteBuf buf = buffer(1024);
+        try {
+            buf.writeByte(UnitedType.getByteFromType(commandType));
+            buf.writeInt(commandInfo.getBytes().length);
+            buf.writeBytes(commandInfo.getBytes());
+            if (commandType == UnitedType.UPLOAD) buf.writeLong(Files.size(Paths.get("client_storage/" + commandInfo)));
+        } catch (IOException e){
+            e.printStackTrace();
         }
+        network.getCurrentChannel().writeAndFlush(buf);
+    }
+
+    public void sendShortCommand(UnitedType commandType){
+        ByteBuf buf = buffer(1);
+        buf.writeByte(UnitedType.getByteFromType(commandType));
         network.getCurrentChannel().writeAndFlush(buf);
     }
 }

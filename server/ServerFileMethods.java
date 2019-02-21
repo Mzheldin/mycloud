@@ -2,7 +2,6 @@ package geekbrains.java.cloud.server;
 
 import geekbrains.java.cloud.common.UnitedType;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.io.IOException;
@@ -10,7 +9,6 @@ import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import static io.netty.buffer.Unpooled.buffer;
 
@@ -19,7 +17,6 @@ public class ServerFileMethods {
     private String serverPath = "server_storage/";
 
     private ChannelHandlerContext ctx;
-    private Channel currentChannel;
 
     public void setServerPath(String serverPath){
         this.serverPath = serverPath;
@@ -36,13 +33,12 @@ public class ServerFileMethods {
     public void writeFile(String fileName, Path path){
         try {
             if (Files.exists(path) && !Files.isDirectory(path)){
-                sendData("UPLOAD " + fileName);
+                sendCommand(UnitedType.UPLOAD, fileName);
                 InputStream inputStream = Files.newInputStream(path);
                 byte[] data = new byte[1024];
                 while (inputStream.available() >= 1024){
                     inputStream.read(data);
                     sendData(data);
-                    Arrays.fill(data, (byte) 0);
                 }
                 byte[] dataEnd = new byte[inputStream.available()];
                 while (inputStream.available() > 0){
@@ -50,6 +46,7 @@ public class ServerFileMethods {
                     sendData(dataEnd);
                 }
                 inputStream.close();
+                //sendFilesList();
             }
         } catch (IOException e){
             e.printStackTrace();
@@ -67,6 +64,7 @@ public class ServerFileMethods {
 
     public void sendFilesList(){
         Path path = Paths.get(serverPath);
+        System.out.println(path.toString());
         ArrayList<String> filesList = new ArrayList<>();
         StringBuilder result = new StringBuilder();
         try {
@@ -90,42 +88,33 @@ public class ServerFileMethods {
             e.printStackTrace();
         }
         for (String o: filesList) result.append(o).append(" ");
-        sendData("LIST " + result);
-        System.out.println("list send " + result.toString());
+        System.out.println(result.toString());
+        sendCommand(UnitedType.LIST, result.toString());
     }
 
     private void sendData(Object data){
-        currentChannel = ctx.channel();
         ByteBuf buf = buffer(1024);
-        if (data instanceof String){
-            try{
-                switch (((String) data).split(" ", 2)[0]){
-                    case "UPLOAD":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.FILE));
-                        buf.writeInt(((String) data).split(" ")[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ")[1].getBytes());
-                        buf.writeLong(Files.size(Paths.get(serverPath + ((String) data).split(" ")[1])));
-                    } break;
-                    case "LIST":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.LIST));
-                        buf.writeInt(((String) data).split(" ", 2)[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ", 2)[1].getBytes());
-                    } break;
-                    case "WARNING":{
-                        buf.writeByte(UnitedType.getByteFromType(UnitedType.WARNING));
-                        buf.writeInt(((String) data).split(" ", 2)[1].getBytes().length);
-                        buf.writeBytes(((String) data).split(" ", 2)[1].getBytes());
-                    } break;
-                    case "AUTH": buf.writeByte(UnitedType.getByteFromType(UnitedType.AUTH));
-                    break;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            buf.writeBytes((byte[]) data);
+        buf.writeBytes((byte[]) data);
+        ctx.channel().writeAndFlush(buf);
+    }
+
+    private void sendCommand(UnitedType commandType, String commandInfo){
+        ByteBuf buf = buffer(1024);
+        try {
+            buf.writeByte(UnitedType.getByteFromType(commandType));
+            buf.writeInt(commandInfo.getBytes().length);
+            buf.writeBytes(commandInfo.getBytes());
+            if (commandType == UnitedType.UPLOAD) buf.writeLong(Files.size(Paths.get(serverPath + commandInfo)));
+        } catch (IOException e){
+            e.printStackTrace();
         }
-        currentChannel.writeAndFlush(buf);
+        ctx.channel().writeAndFlush(buf);
+    }
+
+    private void sendShortCommand(UnitedType commandType) {
+       ByteBuf buf = buffer(1);
+       buf.writeByte(UnitedType.getByteFromType(commandType));
+        ctx.channel().writeAndFlush(buf);
     }
 
     public void createDir(Path path) {
@@ -179,10 +168,10 @@ public class ServerFileMethods {
     }
 
     public void sendAuthOk(){
-        sendData("AUTH");
+        sendShortCommand(UnitedType.AUTH);
     }
 
     public void sendWarning(String warning){
-        sendData("WARNING " + warning);
+        sendCommand(UnitedType.WARNING, warning);
     }
 }
